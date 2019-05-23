@@ -64,7 +64,7 @@ void freeTaskStruct(struct task_struct* tstruct, int taskCount){
 
 void printTaskStruct(struct task_struct* m, int modes){
     for (int i = 0; i < modes; i++){
-        printf("Modde: %i \n" , i);
+        printf("Mode: %i \n" , i);
         printf("Priority: %i \n", m->priority[i]); 
         printf("Limit: %i \n", m->limit[i]); 
         printTimespec("Period: ", m->period[i]);
