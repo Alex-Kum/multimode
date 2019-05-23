@@ -11,7 +11,7 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     }
 }
 
-/*int smallestPeriod(struct task_struct* tstruct, int taskCount, int mode, int min){
+int smallestPeriod(struct task_struct* tstruct, int taskCount, int mode, int min){
     int smallest = INT_MAX; 
 
     for (int i = 0; i < taskCount; i++){
@@ -24,20 +24,33 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
 }
 
 void rmAssign(struct task_struct* tstruct, int taskCount, int modes){
-    int min = 0;
-    int curPrio=97;
-    int smallest;
+    int min, assignedPriorities, curPrio, smallest;
+    int changed = 0;
 
     for (int i = 0; i < modes; i++){
+    	assignedPriorities = 0;
+    	curPrio = 97;
+    	min = 0;
+
         while (assignedPriorities < taskCount){
-        smallest = smallestPeriod(tstruct, taskCount, i, min);
+            smallest = smallestPeriod(tstruct, taskCount, i, min);
+            min = smallest;
             for (int j = 0; j < taskCount; j++){            
-                if (timeToIntNs(tstruct[j].period) == smallest){
+                if (timeToIntNs(tstruct[j].period[i]) == smallest){
+                    tstruct[j].priority[i] = curPrio;
+                    assignedPriorities++;
+                    changed = 1;
                 }
             }
+
+            if (changed){
+            	changed = 0;
+            	curPrio--;
+            }
         }
+
     }
-}*/
+}
 
 void f1(){
     printf("f1 executed\n");
@@ -82,35 +95,35 @@ void function_mode33(void* arg){
 }
 
 void createModeStruct(struct task_struct* tstruct){
-    tstruct[0].priority[0]  = 90;
+    tstruct[0].priority[0]  = 70;
     tstruct[0].period[0] = intNsToTime(1500000000);
     tstruct[0].limit[0] = 3000;
     tstruct[0].function[0] = &function_mode1;
     
-    tstruct[0].priority[1] = 91;
+    tstruct[0].priority[1] = 70;
     tstruct[0].period[1] = intNsToTime(1000000000);
     tstruct[0].limit[1] = 6000;
     tstruct[0].function[1] = &function_mode2;
     
-    tstruct[0].priority[2] = 92;
+    tstruct[0].priority[2] = 70;
     tstruct[0].period[2] = intNsToTime(300000000);
     tstruct[0].limit[2] = 9000;
     tstruct[0].function[2] = &function_mode3;
 }
 
 void createModeStruct2(struct task_struct* tstruct){
-    tstruct[0].priority[0] = 93;
-    tstruct[0].period[0] = intNsToTime(15000000);
+    tstruct[0].priority[0] = 70;
+    tstruct[0].period[0] = intNsToTime(1400000000);
     tstruct[0].limit[0] = 3000;
     tstruct[0].function[0] = &function_mode11;
     
-    tstruct[0].priority[1] = 94;
-    tstruct[0].period[1] = intNsToTime(1000000);
+    tstruct[0].priority[1] = 70;
+    tstruct[0].period[1] = intNsToTime(1100000000);
     tstruct[0].limit[1] = 6000;
     tstruct[0].function[1] = &function_mode22;
     
-    tstruct[0].priority[2] = 95;
-    tstruct[0].period[2] = intNsToTime(30000);
+    tstruct[0].priority[2] = 70;
+    tstruct[0].period[2] = intNsToTime(200000000);
     tstruct[0].limit[2] = 9000;
     tstruct[0].function[2] = &function_mode33;
 }
@@ -126,11 +139,11 @@ void getTasks(struct task_struct* tasks){
 //EXAMPLE TASKS FROM PICTURE
 
 void function1Ex(void* arg){
-    struct timespec start, now;
+    struct timespec now;
     int a = 0;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("\n\nTHREAD1 START: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("\n\nTHREAD1 START: ", now);
     
     for (int j=0; j < 10*25; j++){
         for (int i=0; i < 224000; i++){   
@@ -138,17 +151,17 @@ void function1Ex(void* arg){
         }
         printf("a");
     }
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("THREAD1 END: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("THREAD1 END: ", now);
     printf("\n\n");
 }
 
 void function2Ex(void* arg){
-    struct timespec start, now;
+    struct timespec now;
     int a = 0;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("\n\nTHREAD2 START: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("\n\nTHREAD2 START: ", now);
     
     for (int j=0; j < 10*50; j++){
         for (int i=0; i < 224000; i++){    
@@ -156,17 +169,17 @@ void function2Ex(void* arg){
         }
         printf("b");
     }
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("THREAD2 END: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("THREAD2 END: ", now);
     printf("\n\n");
 }
 
 void function3Ex(void* arg){
-    struct timespec start, now;
+    struct timespec now;
     int a = 0;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("THREAD3 START: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("THREAD3 START: ", now);
     
     for (int j=0; j < 10*100; j++){
         for (int i=0; i < 224000; i++){    
@@ -174,8 +187,8 @@ void function3Ex(void* arg){
         }
         printf("c");
     }
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    printTimespec("THREAD3 END: ", start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    printTimespec("THREAD3 END: ", now);
     printf("\n\n");
 }
   
@@ -207,8 +220,3 @@ void getExTasks(struct task_struct* tasks){
 
     setTaskBegin(tasks, 3, 2000000000);
 }
-
-
-
-
-

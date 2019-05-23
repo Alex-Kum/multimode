@@ -32,7 +32,7 @@ void* multimodeExecuter(void* args){
         clock_gettime(CLOCK_MONOTONIC, &beginPeriod);
         input = *tinfo.input;
         curMode = getMode(tinfo.tstruct, input, 3);
-        struct timespec endPeriod = add(beginPeriod, tinfo.tstruct->period[curMode]);
+        endPeriod = add(beginPeriod, tinfo.tstruct->period[curMode]);
         changeThreadPriority(tinfo.tstruct->priority[curMode]);       
 
         pthread_getschedparam(pthread_self(), &policy, &param);
@@ -44,7 +44,8 @@ void* multimodeExecuter(void* args){
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &endPeriod, NULL);
         clock_gettime(CLOCK_MONOTONIC, &endSleep);
         
-        printf("Period: %i : %i\n\n", diff(beginPeriod, endSleep).tv_sec, diff(beginPeriod, endSleep).tv_nsec);     
+        printTimespec("Period: ", diff(beginPeriod, endSleep));
+        printf("\n\n");
     }
     printf("end\n");
     pthread_exit(NULL);
@@ -75,4 +76,3 @@ void joinThreads(pthread_t* thread, int taskCount){
         }
     }
 }
-

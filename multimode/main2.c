@@ -4,10 +4,9 @@
 
 int main(int argc, char* argv[])
 {
-    const int taskCount = 1;
+    const int taskCount = 2;
     const int modeCount = 3;
 
-    struct timespec time1, time2;
     struct sched_param param;
     pthread_attr_t attr;
     int ret, run;
@@ -21,6 +20,7 @@ int main(int argc, char* argv[])
 
     initTaskStruct(tasks, taskCount, modeCount);
     getTasks(tasks);
+    rmAssign(tasks, taskCount, modeCount);
     printTasks(tasks, taskCount, modeCount);
 
     /* Lock memory */
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
         exit(-2);
     }
 
-    for (int i = 0; i < 100000000; i++){
+    for (int i = 0; i < 1000000000; i++){
         externalInput = getRand(0,9000);
     }
     run = 0;

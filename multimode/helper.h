@@ -27,7 +27,7 @@ struct task_struct{
 
 void printTimespec(const char* str, struct timespec t){
     printf("%s", str);
-    printf("%i : %i\n", t.tv_sec, t.tv_nsec);   
+    printf("%li : %li\n", t.tv_sec, t.tv_nsec);
 }
 
 struct timespec intNsToTime(int time){
@@ -44,7 +44,7 @@ int timeToIntNs(struct timespec time){
     return ns;
 }
 
-struct task_struct initTaskStruct(struct task_struct* tstruct, int taskCount, int modes){
+void initTaskStruct(struct task_struct* tstruct, int taskCount, int modes){
     for(int i = 0; i < taskCount; i++){
         tstruct[i].priority = (int*) malloc(modes*sizeof(int));
         tstruct[i].period = (struct timespec*) malloc(modes*sizeof(struct timespec));
@@ -64,7 +64,7 @@ void freeTaskStruct(struct task_struct* tstruct, int taskCount){
 
 void printTaskStruct(struct task_struct* m, int modes){
     for (int i = 0; i < modes; i++){
-        printf("Mode: %i \n" , i);
+        printf("Modde: %i \n" , i);
         printf("Priority: %i \n", m->priority[i]); 
         printf("Limit: %i \n", m->limit[i]); 
         printTimespec("Period: ", m->period[i]);
