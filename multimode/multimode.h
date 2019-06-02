@@ -1,15 +1,5 @@
 #include "helper.h"
 
-
-int getMode(struct task_struct* tstruct, int externalI, int size){
-    for (int i = 0; i < size; i++){
-        if (externalI <= tstruct->limit[i]){
-            return i;
-        }
-    }
-    return -1;
-}
-
 void changeThreadPriority(int prio){
     int policy;
     struct sched_param param;
@@ -26,12 +16,13 @@ void* multimodeExecuter(void* args){
     int policy, input, curMode;
 
     changeThreadPriority(tinfo.tstruct->priority[0]);
+
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tinfo.tstruct->begin, NULL);
 
     while(*tinfo.running){
         clock_gettime(CLOCK_MONOTONIC, &beginPeriod);
         input = *tinfo.input;
-        curMode = getMode(tinfo.tstruct, input, 3);
+        curMode = getMode(tinfo.tstruct, input);
         endPeriod = add(beginPeriod, tinfo.tstruct->period[curMode]);
         changeThreadPriority(tinfo.tstruct->priority[curMode]);       
 
