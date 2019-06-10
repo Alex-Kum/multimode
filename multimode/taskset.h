@@ -1,5 +1,19 @@
 #include "helper.h"
 
+int getTaskCount(){
+    return 2;
+}
+
+void functionWithExecTime(void* execTimeNs){
+	//int time = *(int*)execTimeNs;
+	int time = 1000;
+    int n = 10000 * time;
+    int number = 0;
+
+    for (int i = 0; i < n; i++){
+        number++;
+    }
+}
 
 void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     struct timespec start, beg;
@@ -10,6 +24,89 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     for (int i = 0; i < taskCount; i++){
         tstruct[i].begin = beg;
     }
+}
+
+void UUniFast(double* USet, double u){
+	int taskCount = getTaskCount();
+    double sumU = u;
+    double nextSum;
+
+    srand(time(NULL));
+    for (int i = 0; i < taskCount-1; i++){
+        nextSum = sumU * pow( ((double)rand() / RAND_MAX), (double)1 / (taskCount-i));
+        USet[i] = sumU-nextSum;
+        sumU = nextSum;
+    }
+    USet[taskCount-1] = sumU;
+}
+
+void CSetGenerate(struct task_struct* tstruct, double* USet, int PMin, int numLog){
+	int taskCount = getTaskCount();
+    int j = 0;
+
+    for (int i = 0; i < taskCount; i++){
+        int thN = j%numLog;
+        tstruct[i].period[0] = intNsToTime(getRand(PMin * pow(10, thN), PMin * pow(10, thN+1)));
+        int execT =(int)(USet[i] * timeToIntNs(tstruct[i].period[0]));
+        tstruct[i].execTime[0] = execT;
+        tstruct[i].function[0] = functionWithExecTime;
+        j++;
+    }
+}
+
+void makeMultiMode(struct task_struct* tstruct){
+    int taskCount = getTaskCount();
+
+    for (int i = 0; i < taskCount; i++){
+        for (int j = 1; j < tstruct[i].modeCount; j++){
+			int p = timeToIntNs(tstruct[i].period[j-1]) * 0.8;
+			tstruct[i].period[j] = intNsToTime(p);
+			tstruct[i].execTime[j] = tstruct[i].execTime[j-1] * 0.8;
+        }
+    }
+
+
+
+    for (int i = 0; i < taskCount; i++){
+        if (tstruct[i].modeCount > 0){
+        	int highestU = getRand(0, tstruct[i].modeCount-1);
+            for (int j = 0; j < tstruct[i].modeCount; j++){
+            	if (j != highestU){
+            		double scale = (double)(getRand(75,100)/(double)100);
+            	    tstruct[i].execTime[j] *= scale;
+            	}
+            }
+        }
+    }
+
+    int inputLimit = 9000;
+    for (int i = 0; i < taskCount; i++){
+    	int sum = 0;
+    	int amount = inputLimit / tstruct[i].modeCount;
+    	for (int j = 0; j < tstruct[i].modeCount; j++){
+    		sum += amount;
+    		tstruct[i].limit[j] = sum;
+    	}
+    }
+}
+
+void generateTasks(struct task_struct* tstruct, double u){
+    int taskCount = getTaskCount();
+    int modes[taskCount];
+    double USet[taskCount];
+
+    for (int i = 0; i < taskCount; i++){
+    	if (i < taskCount/2)
+            modes[i] = 1;
+    	else{
+    		modes[i] = 5;
+    	}
+    }
+
+    initTaskStruct(tstruct, taskCount, modes);
+    UUniFast(USet, u);
+    CSetGenerate(tstruct, USet, 10000, 5);
+    makeMultiMode(tstruct);
 }
 
 int getLimitCount(struct task_struct* tstruct, int taskCount){
@@ -51,15 +148,10 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
 	int modeOfTasks[taskCount];
     int intervalCount = getLimitCount(tstruct, taskCount);
     int intervals[intervalCount];
-   // struct task_struct newTStruct[taskCount];
 
     getLimits(tstruct, taskCount, intervals);
-    //printf("%i\n", intervalCount);
     qsort(intervals, intervalCount, sizeof(int), compare);
-   // printArr(intervals, intervalCount);
-    //printf("\n");
     intervalCount = removeDuplicates(intervals, intervalCount);
-    //printArr(intervals, intervalCount);
 
     int modeCount[taskCount];
     for (int i = 0; i < taskCount; i++){
@@ -67,9 +159,7 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
     }
 
     initTaskStruct(newTStruct, taskCount, modeCount);
-    //printTasks(tstruct, taskCount);
-    //printf("neu\n");
-    //printTasks(newTStruct, taskCount);
+
     for (int i = 0; i < intervalCount; i++){
     	assignedPriorities = 0;
     	curPrio = 97;
@@ -78,23 +168,21 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
         for (int k = 0; k < taskCount; k++){
             modeOfTasks[k] = getMode(&tstruct[k], intervals[i]);
         }
-        printf("\nModes %i:\n", intervals[i]);
-        printArr(modeOfTasks, taskCount);
+       // printf("\nModes %i:\n", intervals[i]);
+        //printArr(modeOfTasks, taskCount);
 
         while (assignedPriorities < taskCount){
             smallest = smallestPeriod(tstruct, taskCount, modeOfTasks, min);
-           // printf("smallest: %i\n", smallest);
             min = smallest;
 
             for (int j = 0; j < taskCount; j++){
             	struct task_struct curTask = tstruct[j];
 
                 if (timeToIntNs(curTask.period[modeOfTasks[j]]) == smallest){
-                	//printf("CFEWJRQERJQRJR");
-                	//printTaskStruct(&curTask);
                     newTStruct[j].priority[i] = curPrio;
                     newTStruct[j].function[i] = curTask.function[modeOfTasks[j]];
                     newTStruct[j].period[i] = curTask.period[modeOfTasks[j]];
+                    newTStruct[j].execTime[i] = curTask.execTime[modeOfTasks[j]];
                     newTStruct[j].limit[i] = intervals[i];
                     assignedPriorities++;
                     changed = 1;
@@ -107,56 +195,12 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
             }
         }
     }
-    //printf("\n\n\n");
+
     for (int i = 0; i < taskCount;i++)
         removeDuplicatesTask(&newTStruct[i]);
 
     freeTaskStruct(tstruct, taskCount);
-   //*/
-   // printTasks(newTStruct, taskCount);
-   // printf("\n\n\n");
 }
-
-/*int smallestPeriod(struct task_struct* tstruct, int taskCount, int mode, int min){
-    int smallest = INT_MAX; 
-
-    for (int i = 0; i < taskCount; i++){
-        int period = timeToIntNs(tstruct[i].period[mode]);
-        if (period < smallest && period > min){
-            smallest = period;
-        }
-    }
-    return smallest;
-}
-
-void rmAssign(struct task_struct* tstruct, int taskCount){
-    int min, assignedPriorities, curPrio, smallest;
-    int changed = 0;
-
-    for (int i = 0; i < tstruct[0].modeCount; i++){
-    	assignedPriorities = 0;
-    	curPrio = 97;
-    	min = 0;
-
-        while (assignedPriorities < taskCount){
-            smallest = smallestPeriod(tstruct, taskCount, i, min);
-            min = smallest;
-            for (int j = 0; j < taskCount; j++){            
-                if (timeToIntNs(tstruct[j].period[i]) == smallest){
-                    tstruct[j].priority[i] = curPrio;
-                    assignedPriorities++;
-                    changed = 1;
-                }
-            }
-
-            if (changed){
-            	changed = 0;
-            	curPrio--;
-            }
-        }
-
-    }
-}*/
 
 void f1(){
     printf("f1 executed\n");
@@ -232,10 +276,6 @@ void createModeStruct2(struct task_struct* tstruct){
     tstruct->period[2] = intNsToTime(200000000);
     tstruct->limit[2] = 9000;
     tstruct->function[2] = &function_mode33;
-}
-
-int getTaskCount(){
-    return 2;
 }
 
 int getTasks(struct task_struct* tasks){ 

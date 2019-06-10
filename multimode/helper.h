@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <math.h>
 
 typedef void (*funcp)(void* arg);
 
@@ -21,6 +22,7 @@ struct task_struct{
     int modeCount;
     int* priority;
     struct timespec* period;
+    int* execTime;
     struct timespec begin;
     int* limit;
     funcp* function;
@@ -51,13 +53,7 @@ int timeToIntNs(struct timespec time){
     return ns;
 }
 
-int sameMode(struct task_struct* tstruct1, int mode1, struct task_struct* tstruct2, int mode2){
-	/*printf("-----------------------------------------------------------------\n");
-	printf("%i : %i\n", mode1, mode2);
-	printf("%i : %i\n", tstruct1->function[mode1] , tstruct2->function[mode2]);
-	printf("%i : %i\n", timeToIntNs(tstruct1->period[mode1]), timeToIntNs(tstruct2->period[mode2]));
-	printf("%i : %i\n", tstruct1->priority[mode1], tstruct2->priority[mode2]);*/
-
+int sameMode(struct task_struct* tstruct1, int mode1, struct task_struct* tstruct2, int mode2){ //execTime!?
     if(tstruct1->function[mode1] != tstruct2->function[mode2])
     	return 0;
 
@@ -67,22 +63,16 @@ int sameMode(struct task_struct* tstruct1, int mode1, struct task_struct* tstruc
     if (tstruct1->priority[mode1] != tstruct2->priority[mode2])
     	return 0;
 
-    //printf("GLEICH");
+
     return 1;
 }
 
-int removeDuplicates(int* arr, int length){    //absturz wenn nicht sortiert??
-	//printf("ANFANG\n");
-	//printArr(arr, length);
+int removeDuplicates(int* arr, int length){
     int n = length;
     int i = 0;
 
     while(i < n-1){
-    	//printf("%ivon%i:\n", i,n);
-    	//printArr(arr, length);
-    	//printf("%i<%i\n", i, n);
         if (arr[i] == arr[i+1]){
-        	//printf("%i:%i   ", arr[i-1],arr[i]);
             for (int k = i; k < n-1; k++){
             	arr[k] = arr[k+1];
             }
@@ -92,8 +82,6 @@ int removeDuplicates(int* arr, int length){    //absturz wenn nicht sortiert??
         else{
             i++;
         }
-        //printArr(arr, length);
-        //printf("%i\n", n);
     }
     return n;
 }
@@ -107,6 +95,7 @@ void removeDuplicatesTask(struct task_struct* tstruct){
 				 tstruct->priority[k] = tstruct->priority[k+1];
 				 tstruct->function[k] = tstruct->function[k+1];
 				 tstruct->limit[k] = tstruct->limit[k+1];
+				 tstruct->execTime[k] = tstruct->execTime[k+1];
 				 tstruct->period[k] = tstruct->period[k+1];
 				 tstruct->priority[k] = tstruct->priority[k+1];
 			 }
@@ -124,8 +113,6 @@ void printTimespec(const char* str, struct timespec t){
     printf("%li : %li\n", t.tv_sec, t.tv_nsec);
 }
 
-
-
 void initTaskStruct(struct task_struct* tstruct, int taskCount, int* modes){
     for(int i = 0; i < taskCount; i++){
         tstruct[i].modeCount = modes[i];
@@ -133,6 +120,7 @@ void initTaskStruct(struct task_struct* tstruct, int taskCount, int* modes){
         tstruct[i].period = (struct timespec*) malloc(modes[i]*sizeof(struct timespec));
         tstruct[i].limit = (int*) malloc(modes[i]*sizeof(int));
         tstruct[i].function = malloc(modes[i]*sizeof(funcp));
+        tstruct[i].execTime = (int*) malloc(modes[i]*sizeof(int));
     }
 
 }
@@ -143,10 +131,9 @@ void freeTaskStruct(struct task_struct* tstruct, int taskCount){
         free(tstruct[i].period);
         free(tstruct[i].limit);
         free(tstruct[i].function);
+        free(tstruct[i].execTime);
     }
 }
-
-
 
 void printTaskStruct(struct task_struct* m){
 	printf("ModeCount: %i\n", m->modeCount);
@@ -156,12 +143,11 @@ void printTaskStruct(struct task_struct* m){
         printf("Priority: %i \n", m->priority[i]);
         printf("Limit: %i \n", m->limit[i]);
         printTimespec("Period: ", m->period[i]);
+        printf("ExecTime: %i \n", m->execTime[i]);
         printTimespec("Begin: ", m->begin);
         printf("\n");
     }
 }
-
-
 
 void printTasks(struct task_struct* t, int taskCount){
     for (int i = 0; i < taskCount; i++){

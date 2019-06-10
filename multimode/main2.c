@@ -15,9 +15,8 @@ int main(int argc, char* argv[])
     struct thread_info tinfo[taskCount];
 
     srand (time (NULL));
-
-    //initTaskStruct(tasks, taskCount, modeCount);
-    getTasks(oTasks);
+   // getTasks(oTasks);
+    generateTasks(oTasks, 0.8);
 
     rmAssign(oTasks, tasks, taskCount);
     setTaskBegin(tasks, taskCount, 2000000000);
