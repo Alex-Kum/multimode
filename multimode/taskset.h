@@ -1,7 +1,7 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 2;
+    return 10;
 }
 
 void functionWithExecTime(void* execTimeNs){
