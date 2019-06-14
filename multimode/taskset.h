@@ -1,18 +1,25 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 10;
+    return 1;
 }
 
 void functionWithExecTime(void* execTimeNs){
-	//int time = *(int*)execTimeNs;
-	int time = 1000;
-    int n = 10000 * time;
+    struct timespec beginPeriod, endPeriod, endSleep;
+    clock_gettime(CLOCK_MONOTONIC, &beginPeriod);
+    int time = *(int*)execTimeNs;
+    double factor = 0.38;
+    int n = factor * time;
+
     int number = 0;
 
     for (int i = 0; i < n; i++){
         number++;
     }
+    clock_gettime(CLOCK_MONOTONIC, &endSleep);
+    printTimespec("echt: ", diff(beginPeriod, endSleep));
+    printf("soll %i \n", time);
+   // printf("%lf\n", (double)time/(double)timeToIntNs(diff(beginPeriod, endSleep)));
 }
 
 void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
@@ -62,6 +69,7 @@ void makeMultiMode(struct task_struct* tstruct){
 			int p = timeToIntNs(tstruct[i].period[j-1]) * 0.8;
 			tstruct[i].period[j] = intNsToTime(p);
 			tstruct[i].execTime[j] = tstruct[i].execTime[j-1] * 0.8;
+                        tstruct[i].function[j] = tstruct[i].function[j-1];
         }
     }
 
@@ -83,10 +91,11 @@ void makeMultiMode(struct task_struct* tstruct){
     for (int i = 0; i < taskCount; i++){
     	int sum = 0;
     	int amount = inputLimit / tstruct[i].modeCount;
-    	for (int j = 0; j < tstruct[i].modeCount; j++){
+    	for (int j = 0; j < tstruct[i].modeCount-1; j++){
     		sum += amount;
     		tstruct[i].limit[j] = sum;
     	}
+    	tstruct[i].limit[tstruct[i].modeCount-1] = inputLimit;
     }
 }
 

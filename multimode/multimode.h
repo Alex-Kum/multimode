@@ -31,8 +31,8 @@ void* multimodeExecuter(void* args){
         printf("Priority: %i\n", param.sched_priority);
         //printf("Execute task in mode %i\n", curMode);        
         
-        //tinfo.tstruct->function[curMode]((void*)tinfo.tstruct->execTime[curMode]);
-        tinfo.tstruct->function[curMode](NULL);
+        tinfo.tstruct->function[curMode]((void*)&tinfo.tstruct->execTime[curMode]);
+        //tinfo.tstruct->function[curMode](NULL);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &endPeriod, NULL);
         clock_gettime(CLOCK_MONOTONIC, &endSleep);
         
