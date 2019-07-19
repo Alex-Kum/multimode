@@ -1,25 +1,27 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 1;
+    return 10;
 }
 
 void functionWithExecTime(void* execTimeNs){
     struct timespec beginPeriod, endPeriod, endSleep;
     clock_gettime(CLOCK_MONOTONIC, &beginPeriod);
     int time = *(int*)execTimeNs;
-    double factor = 0.38;
+    double factor = 0.35;
+    if (time < 10000)
+        factor = 0.29;
     int n = factor * time;
-
     int number = 0;
 
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++)
         number++;
-    }
+
     clock_gettime(CLOCK_MONOTONIC, &endSleep);
-    printTimespec("echt: ", diff(beginPeriod, endSleep));
-    printf("soll %i \n", time);
-   // printf("%lf\n", (double)time/(double)timeToIntNs(diff(beginPeriod, endSleep)));
+    //printTimespec("echt: ", diff(beginPeriod, endSleep));
+    #ifdef print
+        printf("echt: %i---soll:%i\n", timeToIntNs(diff(beginPeriod, endSleep)), time);
+    #endif
 }
 
 void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
@@ -34,7 +36,7 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
 }
 
 void UUniFast(double* USet, double u){
-	int taskCount = getTaskCount();
+    int taskCount = getTaskCount();
     double sumU = u;
     double nextSum;
 
@@ -48,7 +50,7 @@ void UUniFast(double* USet, double u){
 }
 
 void CSetGenerate(struct task_struct* tstruct, double* USet, int PMin, int numLog){
-	int taskCount = getTaskCount();
+    int taskCount = getTaskCount();
     int j = 0;
 
     for (int i = 0; i < taskCount; i++){
@@ -114,7 +116,7 @@ void generateTasks(struct task_struct* tstruct, double u){
 
     initTaskStruct(tstruct, taskCount, modes);
     UUniFast(USet, u);
-    CSetGenerate(tstruct, USet, 10000, 5);
+    CSetGenerate(tstruct, USet, 100000, 3);
     makeMultiMode(tstruct);
 }
 
@@ -177,8 +179,6 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
         for (int k = 0; k < taskCount; k++){
             modeOfTasks[k] = getMode(&tstruct[k], intervals[i]);
         }
-       // printf("\nModes %i:\n", intervals[i]);
-        //printArr(modeOfTasks, taskCount);
 
         while (assignedPriorities < taskCount){
             smallest = smallestPeriod(tstruct, taskCount, modeOfTasks, min);

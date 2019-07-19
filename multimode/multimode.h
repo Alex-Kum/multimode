@@ -12,7 +12,7 @@ void changeThreadPriority(int prio){
 void* multimodeExecuter(void* args){
     struct thread_info tinfo = *(struct thread_info*)args;
     struct sched_param param;
-    struct timespec beginPeriod, endPeriod, endSleep;
+    struct timespec beginPeriod, endPeriod, endSleep, responseT;
     int policy, input, curMode;
 
     changeThreadPriority(tinfo.tstruct->priority[0]);
@@ -27,17 +27,37 @@ void* multimodeExecuter(void* args){
         changeThreadPriority(tinfo.tstruct->priority[curMode]);       
 
         pthread_getschedparam(pthread_self(), &policy, &param);
-        printf("Input: %i\n", input);        
-        printf("Priority: %i\n", param.sched_priority);
-        //printf("Execute task in mode %i\n", curMode);        
+        #ifdef print
+            printf("Input: %i\n", input);        
+            printf("Priority: %i\n", param.sched_priority);
+            printf("Execute task in mode %i\n", curMode);   
+        #endif
         
+        if (counter < size){
+            execOrder[counter] = tinfo.threadId;
+            counter++;
+        }        
         tinfo.tstruct->function[curMode]((void*)&tinfo.tstruct->execTime[curMode]);
-        //tinfo.tstruct->function[curMode](NULL);
+        clock_gettime(CLOCK_MONOTONIC, &responseT);
+        responseT = diff(beginPeriod, responseT);
+        #ifdef print
+            printTimespec("responseTime: ", responseT);
+        #endif
+        if (timeToIntNs(responseT) > wcrt){
+            wcrt = timeToIntNs(responseT);
+        }
+
+        if (counter < size){
+            execOrder[counter] = tinfo.threadId;
+            counter++;
+        }     
+        
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &endPeriod, NULL);
         clock_gettime(CLOCK_MONOTONIC, &endSleep);
-        
-        printTimespec("Period: ", diff(beginPeriod, endSleep));
-        printf("\n\n");
+        #ifdef print
+            printTimespec("Period: ", diff(beginPeriod, endSleep));
+            printf("\n\n");
+        #endif
     }
     printf("end\n");
     pthread_exit(NULL);

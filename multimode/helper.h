@@ -10,12 +10,16 @@
 #include <unistd.h>
 #include <math.h>
 
+#define size 200000
+//#define print
+
 typedef void (*funcp)(void* arg);
 
 struct thread_info{
     struct task_struct *tstruct;
     int* input;
     int* running;
+    int threadId;
 };
 
 struct task_struct{
@@ -27,6 +31,10 @@ struct task_struct{
     int* limit;
     funcp* function;
 };
+
+int execOrder[size];
+int counter = 0;
+int wcrt = 0;
 
 int compare(const void* a, const void* b){
     return ( *(int*)a - *(int*)b );
@@ -136,7 +144,7 @@ void freeTaskStruct(struct task_struct* tstruct, int taskCount){
 }
 
 void printTaskStruct(struct task_struct* m){
-	printf("ModeCount: %i\n", m->modeCount);
+    printf("ModeCount: %i\n", m->modeCount);
 
     for (int i = 0; i < m->modeCount; i++){
         printf("Mode: %i \n" , i);
@@ -154,6 +162,26 @@ void printTasks(struct task_struct* t, int taskCount){
         printTaskStruct(&t[i]);
     }
 }
+
+void tasksToFile(struct task_struct* t, int taskCount){
+    FILE *f = fopen("file.txt", "w");
+
+    for (int i = 0; i < taskCount; i++){
+        fprintf(f, "ModeCount: %i\n", t[i].modeCount);
+
+        for (int k = 0; k < t[i].modeCount; k++){
+	    fprintf(f, "Mode: %i \n" , k);
+	    fprintf(f, "Priority: %i \n", t[i].priority[k]);
+	    fprintf(f, "Limit: %i \n", t[i].limit[k]);
+	    fprintf(f, "Period: %i\n", timeToIntNs(t[i].period[k]));
+	    fprintf(f, "ExecTime: %i \n", t[i].execTime[k]);
+	    fprintf(f, "Begin: %i\n", timeToIntNs(t[i].begin));
+	    fprintf(f, "\n\n");
+        }
+    }
+    fclose(f);
+}
+
 
 int getRand(int min, int max){
     return (rand () % ((max + 1) - min)) + min;
@@ -188,6 +216,7 @@ void fillThreadInfos(struct thread_info* tinfo, struct task_struct* tstruct, int
         tinfo[i].input = externalInput;
         tinfo[i].running = run;
         tinfo[i].tstruct = &tstruct[i]; 
+        tinfo[i].threadId = i;
     }
 }
 
