@@ -36,6 +36,7 @@ int execOrder[size];
 int counter = 0;
 int wcrt = 0;
 
+
 int compare(const void* a, const void* b){
     return ( *(int*)a - *(int*)b );
 }
@@ -163,8 +164,8 @@ void printTasks(struct task_struct* t, int taskCount){
     }
 }
 
-void tasksToFile(struct task_struct* t, int taskCount){
-    FILE *f = fopen("file.txt", "w");
+void tasksToFile(struct task_struct* t, int taskCount, char* fname){
+    FILE *f = fopen(fname, "w");
 
     for (int i = 0; i < taskCount; i++){
         fprintf(f, "ModeCount: %i\n", t[i].modeCount);
@@ -182,6 +183,24 @@ void tasksToFile(struct task_struct* t, int taskCount){
     fclose(f);
 }
 
+void copyTaskStruct(struct task_struct* tstruct, struct task_struct* newStruct, int taskCount){
+    int modes[taskCount];
+    for(int i = 0; i < taskCount; i++)
+        modes[i] = tstruct[i].modeCount;
+
+    initTaskStruct(newStruct, taskCount, modes);
+    for (int k = 0; k < taskCount; k++){
+        newStruct[k].modeCount = tstruct[k].modeCount;
+        newStruct[k].begin = tstruct[k].begin;
+        for (int i = 0; i < newStruct[k].modeCount; i++){
+            newStruct[k].priority[i] = tstruct[k].priority[i];
+            newStruct[k].period[i] = tstruct[k].period[i];
+            newStruct[k].execTime[i] = tstruct[k].execTime[i];
+            newStruct[k].limit[i] = tstruct[k].limit[i];
+            newStruct[k].function[i] = tstruct[k].function[i];
+        }
+    }
+}
 
 int getRand(int min, int max){
     return (rand () % ((max + 1) - min)) + min;

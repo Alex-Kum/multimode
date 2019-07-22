@@ -1,7 +1,7 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 10;
+    return 5;
 }
 
 void functionWithExecTime(void* execTimeNs){
@@ -18,7 +18,6 @@ void functionWithExecTime(void* execTimeNs){
         number++;
 
     clock_gettime(CLOCK_MONOTONIC, &endSleep);
-    //printTimespec("echt: ", diff(beginPeriod, endSleep));
     #ifdef print
         printf("echt: %i---soll:%i\n", timeToIntNs(diff(beginPeriod, endSleep)), time);
     #endif
@@ -35,6 +34,15 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     }
 }
 
+int getLimitCount(struct task_struct* tstruct){
+    int sum = 0;
+    int taskCount = getTaskCount();
+
+    for (int i = 0; i < taskCount; i++){
+    	sum += tstruct[i].modeCount;
+    }
+    return sum;
+}
 void UUniFast(double* USet, double u){
     int taskCount = getTaskCount();
     double sumU = u;
@@ -101,6 +109,99 @@ void makeMultiMode(struct task_struct* tstruct){
     }
 }
 
+int smallestPeriodFPT(struct task_struct* tstruct, int min){
+    int smallest = INT_MAX;
+    int taskCount = getTaskCount();
+
+    for (int i = 0; i < taskCount; i++){
+        int period = timeToIntNs(tstruct[i].period[0]);
+        if (period < smallest && period > min){
+            smallest = period;
+        }
+    }
+    return smallest;
+}
+
+int smallestPeriodFPM(struct task_struct* tstruct, int min, int smallestI, int biggestI){
+	int smallest = INT_MAX;
+	int taskCount = getTaskCount();
+
+	for (int i = 0; i < taskCount; i++){
+		for (int k = 0; k < tstruct[i].modeCount; k++){
+	        int period = timeToIntNs(tstruct[i].period[k]);
+	       // if (period >= biggestI)
+	        //	break;
+
+	        if (period < smallest && period > min && period >= smallestI && period >= biggestI){
+	            smallest = period;
+	        }
+		}
+	}
+	return smallest;
+}
+
+void rmAssignFPT(struct task_struct* tstruct){
+	int taskCount = getTaskCount();
+	int min, assignedPriorities, curPrio, smallest;
+	int changed = 0;
+
+	assignedPriorities = 0;
+	curPrio = 97;
+	min = 0;
+	while(assignedPriorities < taskCount){
+		smallest = smallestPeriodFPT(tstruct, min);
+		min = smallest;
+
+		for (int j = 0; j < taskCount; j++){
+			if (timeToIntNs(tstruct[j].period[0]) == smallest){
+				tstruct[j].priority[0] = curPrio;
+				assignedPriorities++;
+				changed = 1;
+			}
+		}
+		if (changed){
+		    changed = 0;
+		    curPrio--;
+		}
+	}
+
+	for (int i = 0; i < taskCount; i++){
+		for (int j = 1; j < tstruct[i].modeCount; j++){
+			tstruct[i].priority[j] = tstruct[i].priority[0];
+		}
+	}
+}
+
+void rmAssignFPM(struct task_struct* tstruct){
+    int taskCount = getTaskCount();
+    int modes = getLimitCount(tstruct);
+    int min, assignedPriorities, curPrio, smallest;
+    int changed = 0;
+
+    assignedPriorities = 0;
+    curPrio = 97;
+    min = 0;
+    while(assignedPriorities < modes){
+        smallest = smallestPeriodFPM(tstruct, min, 0, 9000);
+        min = smallest;
+
+        for (int j = 0; j < taskCount; j++){
+            for (int k = 0; k < tstruct[j].modeCount; k++){
+        	if (timeToIntNs(tstruct[j].period[k]) == smallest){
+ 		    tstruct[j].priority[k] = curPrio;
+                    assignedPriorities++;
+        	    changed = 1;
+        	}
+            }
+        }
+        if (changed){
+        	changed = 0;
+        	curPrio--;
+        }
+    }
+}
+
+
 void generateTasks(struct task_struct* tstruct, double u){
     int taskCount = getTaskCount();
     int modes[taskCount];
@@ -120,14 +221,6 @@ void generateTasks(struct task_struct* tstruct, double u){
     makeMultiMode(tstruct);
 }
 
-int getLimitCount(struct task_struct* tstruct, int taskCount){
-    int sum = 0;
-
-    for (int i = 0; i < taskCount; i++){
-    	sum += tstruct[i].modeCount;
-    }
-    return sum;
-}
 
 void getLimits(struct task_struct* tstruct, int taskCount, int* arr){
 	int counter = 0;
@@ -157,7 +250,7 @@ void rmAssign(struct task_struct* tstruct, struct task_struct* newTStruct, int t
     int changed = 0;
 
 	int modeOfTasks[taskCount];
-    int intervalCount = getLimitCount(tstruct, taskCount);
+    int intervalCount = getLimitCount(tstruct);
     int intervals[intervalCount];
 
     getLimits(tstruct, taskCount, intervals);

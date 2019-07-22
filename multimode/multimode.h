@@ -59,7 +59,9 @@ void* multimodeExecuter(void* args){
             printf("\n\n");
         #endif
     }
-    printf("end\n");
+    #ifdef print
+        printf("end\n");
+    #endif
     pthread_exit(NULL);
  
 }
