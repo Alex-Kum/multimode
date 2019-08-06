@@ -69,7 +69,7 @@ int createThreads(struct thread_info* tinfo, pthread_t* thread, int taskCount, p
     int ret;
 
     for (int i = 0; i < taskCount; i++){
-        ret = pthread_create(&thread[i], attr, &multimodeExecuter, (void*)&tinfo[i]);
+        ret = pthread_create(&thread[i], &attr[i], &multimodeExecuter, (void*)&tinfo[i]);
         if (ret) {
             printf("create pthread failed%i\n",ret);
             return ret;

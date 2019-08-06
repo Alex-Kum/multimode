@@ -4,17 +4,18 @@
 
 int main(int argc, char* argv[])
 {
-    int numberOfRuns = 1;
+    int numberOfRuns = 100;
     int utilStepCount = 1;
     float startUtil = 0.7;
     float utilStep = 0.05;
 
-    struct sched_param param;
-    pthread_attr_t attr;
+    int taskCount = getTaskCount();
+    struct sched_param param[taskCount];
+    pthread_attr_t attr[taskCount];
     int ret, run;
     int externalInput = 0;
     struct timespec begin, now;
-    int taskCount = getTaskCount();
+    
     
     srand (time (NULL));
     if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
@@ -22,38 +23,39 @@ int main(int argc, char* argv[])
         exit(-2);
     }
 
-    ret = pthread_attr_init(&attr);
-    if (ret) {
-        printf("init pthread attributes failed\n");
-        exit(-2);
+    for (int i = 0; i < taskCount; i++){
+        ret = pthread_attr_init(&attr[i]);
+        if (ret) {
+            printf("init pthread attributes failed\n");
+            exit(-2);
+        }
+
+        ret = pthread_attr_setstacksize(&attr[i], PTHREAD_STACK_MIN);
+        if (ret) {
+            printf("pthread setstacksize failed\n");
+            exit(-2);
+        }
+
+        ret = pthread_attr_setschedpolicy(&attr[i], SCHED_RR);
+        if (ret) {
+            printf("pthread setschedpolicy failed\n");
+            exit(-2);
+        }    
+         
+        param[i].sched_priority = 98;
+
+        ret = pthread_attr_setschedparam(&attr[i], &param[i]);
+        if (ret) {
+            printf("pthread setschedparam failed\n");
+            exit(-2);
+        }
+
+        ret = pthread_attr_setinheritsched(&attr[i], PTHREAD_EXPLICIT_SCHED);
+        if (ret) {
+            printf("pthread setinheritsched failed\n");
+            exit(-2);
+        }
     }
-
-    ret = pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN);
-    if (ret) {
-        printf("pthread setstacksize failed\n");
-        exit(-2);
-    }
-
-    ret = pthread_attr_setschedpolicy(&attr, SCHED_RR);
-    if (ret) {
-        printf("pthread setschedpolicy failed\n");
-        exit(-2);
-    }    
-     
-    param.sched_priority = 98;
-
-    ret = pthread_attr_setschedparam(&attr, &param);
-    if (ret) {
-        printf("pthread setschedparam failed\n");
-        exit(-2);
-    }
-
-    ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-    if (ret) {
-        printf("pthread setinheritsched failed\n");
-        exit(-2);
-    }
-
 
     for (int k = 0; k < utilStepCount; k++){
         struct task_struct cTasks[taskCount];  
@@ -63,10 +65,10 @@ int main(int argc, char* argv[])
 
         float util = startUtil + k*utilStep;
 
-        char fptName[17] = "wcrtFPT";
-        char fpmName[17] = "wcrtFPM";
-        char buf[2];
-        char buf2[2];
+        char fptName[20] = "wcrtFPT";
+        char fpmName[20] = "wcrtFPM";   //17
+        char buf[3];
+        char buf2[3];
         int u = util*100;
         sprintf(buf, "%i", u);
         sprintf(buf2, "%i", taskCount);
@@ -84,18 +86,18 @@ int main(int argc, char* argv[])
             generateTasks(cTasks, util);
             copyTaskStruct(cTasks, cTasks2, taskCount);
             struct task_struct* tasks;
-            char* fileName = 0;
+            //char* fileName = 0;
             char* wcrtFile = 0;
             for (int j = 0; j < 2; j++){
                 if (j == 0){
                     tasks = cTasks;
-                    fileName = "fileFPT.txt";
+                    //fileName = "fileFPT.txt";
                     wcrtFile = fptName;
                     rmAssignFPT(tasks);
                 }
                 else{
                     tasks = cTasks2;
-                    fileName="fileFPM.txt";
+                    //fileName="fileFPM.txt";
                     wcrtFile = fpmName;
                     rmAssignFPM(tasks);
                 }
@@ -106,11 +108,11 @@ int main(int argc, char* argv[])
                 #ifdef print 
                     printTasks(tasks, taskCount);
                 #endif
-                tasksToFile(tasks, taskCount, fileName);
+                //tasksToFile(tasks, taskCount, fileName);
 
                 fillThreadInfos(tinfo, tasks, taskCount, &run, &externalInput);
                 run=1;
-                ret = createThreads(tinfo, thread, taskCount, &attr);
+                ret = createThreads(tinfo, thread, taskCount, attr);
                 if (ret){
                     freeTaskStruct(tasks, taskCount);
                     exit(-2);

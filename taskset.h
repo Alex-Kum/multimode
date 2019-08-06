@@ -1,7 +1,7 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 20;
+    return 40;
 }
 
 int getRandExecTime(int wcet){
@@ -98,9 +98,9 @@ void makeMultiMode(struct task_struct* tstruct){
         int rand = getRand(5,9);
     	float factor = rand/10.0;
         for (int j = 1; j < tstruct[i].modeCount; j++){
-			int p = timeToIntNs(tstruct[i].period[j-1]) * factor;
-			tstruct[i].period[j] = intNsToTime(p);
-			tstruct[i].execTime[j] = tstruct[i].execTime[j-1] * factor;
+            int p = timeToIntNs(tstruct[i].period[j-1]) * factor;
+            tstruct[i].period[j] = intNsToTime(p);
+            tstruct[i].execTime[j] = tstruct[i].execTime[j-1] * factor;
             tstruct[i].function[j] = tstruct[i].function[j-1];
         }
     }
@@ -110,8 +110,8 @@ void makeMultiMode(struct task_struct* tstruct){
     	int sum = 0;
     	int amount = inputLimit / tstruct[i].modeCount;
     	for (int j = 0; j < tstruct[i].modeCount-1; j++){
-    		sum += amount;
-    		tstruct[i].limit[j] = sum;
+            sum += amount;
+            tstruct[i].limit[j] = sum;
     	}
     	tstruct[i].limit[tstruct[i].modeCount-1] = inputLimit;
     }
@@ -131,51 +131,51 @@ int smallestPeriodFPT(struct task_struct* tstruct, int min){
 }
 
 int smallestPeriodFPM(struct task_struct* tstruct, int min, int smallestI, int biggestI){
-	int smallest = INT_MAX;
-	int taskCount = getTaskCount();
+    int smallest = INT_MAX;
+    int taskCount = getTaskCount();
 
-	for (int i = 0; i < taskCount; i++){
-		for (int k = 0; k < tstruct[i].modeCount; k++){
-	        int period = timeToIntNs(tstruct[i].period[k]);
-	        if (period < smallest && period > min && period >= smallestI && period >= biggestI){
-	            smallest = period;
-	        }
-		}
-	}
-	return smallest;
+    for (int i = 0; i < taskCount; i++){
+        for (int k = 0; k < tstruct[i].modeCount; k++){
+            int period = timeToIntNs(tstruct[i].period[k]);
+            if (period < smallest && period > min && period >= smallestI && period >= biggestI){
+                smallest = period;
+            }
+        }
+    }
+    return smallest;
 }
 
 void rmAssignFPT(struct task_struct* tstruct){
-	int taskCount = getTaskCount();
-	int min, assignedPriorities, curPrio, smallest;
-	int changed = 0;
+    int taskCount = getTaskCount();
+    int min, assignedPriorities, curPrio, smallest;
+    int changed = 0;
 
-	assignedPriorities = 0;
-	curPrio = 98;
+    assignedPriorities = 0;
+    curPrio = 98;
     highestPrio = curPrio;
-	min = 0;
-	while(assignedPriorities < taskCount){
-		smallest = smallestPeriodFPT(tstruct, min);
-		min = smallest;
+    min = 0;
+    while(assignedPriorities < taskCount){
+        smallest = smallestPeriodFPT(tstruct, min);
+        min = smallest;
 
-		for (int j = 0; j < taskCount; j++){
-			if (timeToIntNs(tstruct[j].period[0]) == smallest){
-				tstruct[j].priority[0] = curPrio;
-				assignedPriorities++;
-				changed = 1;
-			}
-		}
-		if (changed){
-		    changed = 0;
-		    curPrio--;
-		}
-	}
+        for (int j = 0; j < taskCount; j++){
+            if (timeToIntNs(tstruct[j].period[0]) == smallest){
+                tstruct[j].priority[0] = curPrio;
+                assignedPriorities++;
+                changed = 1;
+            }
+        }
+        if (changed){
+            changed = 0;
+            curPrio--;
+        }
+    }
     lowestPrio = curPrio+1;
-	for (int i = 0; i < taskCount; i++){
-		for (int j = 1; j < tstruct[i].modeCount; j++){
-			tstruct[i].priority[j] = tstruct[i].priority[0];
-		}
-	}
+    for (int i = 0; i < taskCount; i++){
+        for (int j = 1; j < tstruct[i].modeCount; j++){
+            tstruct[i].priority[j] = tstruct[i].priority[0];
+        }
+    }
     #ifdef print
         printf("H: %i  L: %i\n", highestPrio, lowestPrio);
     #endif
@@ -197,16 +197,16 @@ void rmAssignFPM(struct task_struct* tstruct){
 
         for (int j = 0; j < taskCount; j++){
             for (int k = 0; k < tstruct[j].modeCount; k++){
-		    	if (timeToIntNs(tstruct[j].period[k]) == smallest){
-	 		        tstruct[j].priority[k] = curPrio;
-		            assignedPriorities++;
-		    	    changed = 1;
-		    	}
+                if (timeToIntNs(tstruct[j].period[k]) == smallest){
+                    tstruct[j].priority[k] = curPrio;
+                    assignedPriorities++;
+                    changed = 1;
+                }
             }
         }
         if (changed){
-        	changed = 0;
-        	curPrio--;
+            changed = 0;
+            curPrio--;
         }
     }
     lowestPrio = curPrio+1;
@@ -225,7 +225,7 @@ void generateTasks(struct task_struct* tstruct, double u){
     	if (i < taskCount/2)
             modes[i] = 1;
     	else{
-    		modes[i] = 4;
+            modes[i] = 4;
     	}
     }
 

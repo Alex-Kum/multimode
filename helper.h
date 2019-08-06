@@ -91,11 +91,11 @@ double randn(double mu, double sigma){
 }
 
 int refreshFileNames(float util, int taskCount, int number){
-    char curLFPT[18] = "rtLFPT";
-    char curLFPM[18] = "rtLFPM";
+    char curLFPT[20] = "rtLFPT";
+    char curLFPM[20] = "rtLFPM";
 
-    char buf[2];
-    char buf2[2];
+    char buf[3];
+    char buf2[3];
     int u = util*100;
     sprintf(buf, "%i", u);
     sprintf(buf2, "%i", taskCount);
