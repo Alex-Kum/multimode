@@ -14,16 +14,6 @@ void* multimodeExecuter(void* args){
     struct sched_param param;
     struct timespec beginPeriod, endPeriod, endSleep, responseT;
     int policy, input, curMode, prio;
-    FILE* fh, *fl;
-
-    if (g_curMode == 0){
-        fh = fopen(g_curHFPT, "a");
-        fl = fopen(g_curLFPT, "a");
-    }
-    else{
-        fh = fopen(g_curHFPM, "a");
-        fl = fopen(g_curLFPM, "a");
-    }
 
     changeThreadPriority(tinfo.tstruct->priority[0]);
     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &tinfo.tstruct->begin, NULL);
@@ -34,41 +24,40 @@ void* multimodeExecuter(void* args){
         curMode = getMode(tinfo.tstruct, input);
         endPeriod = add(beginPeriod, tinfo.tstruct->period[curMode]);
         prio = tinfo.tstruct->priority[curMode];
-        changeThreadPriority(prio);       
 
+        changeThreadPriority(prio);  
+        tinfo.tstruct->function[curMode]((void*)&tinfo.tstruct->execTime[curMode]);
+        changeThreadPriority(highestPrio); 
+
+        clock_gettime(CLOCK_MONOTONIC, &responseT);
+        responseT = diff(beginPeriod, responseT);
+        int resT = timeToIntNs(responseT);
+        if (prio == lowestPrio){
+            if (resT > wcrt)
+                wcrt = resT;
+            //fprintf(fl, "%i\n", resT);
+            if (counter < size){
+                pthread_mutex_lock(&mutex);
+                rTime[counter] = resT;
+                counter++;
+                pthread_mutex_unlock(&mutex);
+            }
+        }     
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &endPeriod, NULL);
+        
         #ifdef print
+            struct timespec endSleep;
+            printTimespec("responseTime: ", responseT);
             pthread_getschedparam(pthread_self(), &policy, &param);
             printf("Input: %i\n", input);        
             printf("Priority: %i\n", param.sched_priority);
-            printf("Execute task in mode %i\n", curMode);   
-        #endif
- 
-        tinfo.tstruct->function[curMode]((void*)&tinfo.tstruct->execTime[curMode]);
-        clock_gettime(CLOCK_MONOTONIC, &responseT);
-        responseT = diff(beginPeriod, responseT);
-        #ifdef print
-            printTimespec("responseTime: ", responseT);
-        #endif
-
-        int resT = timeToIntNs(responseT);
-        if (prio == highestPrio && curMode == tinfo.tstruct->modeCount-1){
-            fprintf(fh, "%i\n", resT);
-            if (resT > wcrt)
-                wcrt = resT;
-        }
-        else if (prio == lowestPrio){
-            fprintf(fl, "%i\n", resT);
-        }
-        
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &endPeriod, NULL);
-        clock_gettime(CLOCK_MONOTONIC, &endSleep);
-        #ifdef print
+            printf("Execute task in mode %i\n", curMode); 
+            clock_gettime(CLOCK_MONOTONIC, &endSleep);
             printTimespec("Period: ", diff(beginPeriod, endSleep));
             printf("\n\n");
         #endif
     }
-    fclose(fh);
-    fclose(fl);
+
     #ifdef print
         printf("end\n");
     #endif

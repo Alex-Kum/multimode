@@ -11,7 +11,7 @@
 #include <math.h>
 #include <string.h>
 
-#define size 200000
+#define size 400000
 //#define print
 
 typedef void (*funcp)(void* arg);
@@ -33,25 +33,37 @@ struct task_struct{
     funcp* function;
 };
 
+int rTime[size];
+int volatile counter = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int wcrt = 0;
 int highestPrio = 0;
 int lowestPrio = 0;
 
-int g_curUtil = 0;
-int g_curTaskCount = 0;
 int g_curMode = 0;
-int g_curNumber = 0;
-
-char g_curHFPT[18];
-char g_curHFPM[18];
 char g_curLFPT[18];
 char g_curLFPM[18];
 
-void initArray(int* arr, int length){
-    for (int i = 0; i < length; i++){
+void initArr(int* arr, int length){
+    for (int i = 0; i < length; i++)
         arr[i] = 0;
-    }
-} 
+}
+
+void rTimeToFile(){
+    FILE* f = 0;
+
+    if (g_curMode == 0)
+        f = fopen(g_curLFPT, "w+");
+    else
+        f = fopen(g_curLFPM, "w+");
+
+    for (int i = 0; i < size; i++)
+        if (rTime[i] > 0)
+            fprintf(f, "%i\n", rTime[i]);
+    
+    fclose(f);
+}
 
 double randn(double mu, double sigma){
     double U1, U2, W, mult;
@@ -79,123 +91,35 @@ double randn(double mu, double sigma){
 }
 
 int refreshFileNames(float util, int taskCount, int number){
-    char curHFPT[18] = "rtHFPT";
-    char curHFPM[18] = "rtHFPM";
     char curLFPT[18] = "rtLFPT";
     char curLFPM[18] = "rtLFPM";
 
-	char buf[2];
-	char buf2[2];
-	int u = util*100;
-	sprintf(buf, "%i", u);
-	sprintf(buf2, "%i", taskCount);
-	strcat(curHFPT, buf);
-	strcat(curHFPM, buf);
+    char buf[2];
+    char buf2[2];
+    int u = util*100;
+    sprintf(buf, "%i", u);
+    sprintf(buf2, "%i", taskCount);
     strcat(curLFPT, buf);
-	strcat(curLFPM, buf);
-	strcat(curHFPT, buf2);
-	strcat(curHFPM, buf2);
+    strcat(curLFPM, buf);;
     strcat(curLFPT, buf2);
-	strcat(curLFPM, buf2);
+    strcat(curLFPM, buf2);
 
-	char buf3[3];
-	sprintf(buf3, "%i", number);
-	strcat(curHFPT, "-");
-	strcat(curHFPM, "-");
+    char buf3[3];
+    sprintf(buf3, "%i", number);
     strcat(curLFPT, "-");
-	strcat(curLFPM, "-");
-	strcat(curHFPT, buf3);
-	strcat(curHFPM, buf3);
+    strcat(curLFPM, "-");
     strcat(curLFPT, buf3);
-	strcat(curLFPM, buf3);
-    printf("%s %s %s\n", buf, buf2, buf3);
-    strcat(curHFPT, ".txt\0");
-	strcat(curHFPM, ".txt\0");
+    strcat(curLFPM, buf3);
     strcat(curLFPT, ".txt\0");
-	strcat(curLFPM, ".txt\0");
+    strcat(curLFPM, ".txt\0");
 
-    strncpy(g_curHFPT, curHFPT, 18);
-    strncpy(g_curHFPM, curHFPM, 18);
     strncpy(g_curLFPT, curLFPT, 18);
     strncpy(g_curLFPM, curLFPM, 18);
 
     #ifdef print
         printf("%s, %s, %s, %s\n", g_curHFPT, g_curHFPM, g_curLFPT, g_curLFPM);
-	    printf("%s, %s, %s, %s\n", curHFPT, curHFPM, curLFPT, curLFPM);
+        printf("%s, %s, %s, %s\n", curHFPT, curHFPM, curLFPT, curLFPM);
     #endif
-}
-
-/*void wcrtArrToFile(int number, float util, int taskCount, int mode){
-    printf("%i\n", mode);
-    for (int k = 0; k < 2; k++){
-        char* tmp;
-        char fptName[20] = "";
-        char fpmName[20] = "";
-        if (k==0){
-            if (g_curMode == 0){
-                tmp = "wcrtHFPT";
-                sprintf(fptName, "%s", tmp);
-            }
-            else{
-                tmp = "wcrtHFPM";		    
-                sprintf(fpmName, "%s", tmp);
-            }
-        }
-        else{
-            if (g_curMode == 0){
-                tmp = "wcrtLFPT";
-                sprintf(fptName, "%s", tmp);
-            }
-            else{
-                tmp = "wcrtLFPM";
-		        sprintf(fpmName, "%s", tmp);
-            }
-            
-        }
-		char buf[3];
-		char buf2[2];
-		int u = g_curUtil*10;
-		sprintf(buf, "%i", u);
-		sprintf(buf2, "%i", g_curTaskCount);
-		strcat(fptName, buf);
-		strcat(fpmName, buf);
-		strcat(fptName, buf2);
-		strcat(fpmName, buf2);
-
-		char buf3[3];
-		sprintf(buf3, "%i", g_curNumber);
-		strcat(fptName, "-");
-		strcat(fpmName, "-");
-		strcat(fptName, buf3);
-		strcat(fpmName, buf3);
-		
-		strcat(fptName, ".txt\0");
-		strcat(fpmName, ".txt\0");
-        FILE* f;
-        if (g_curMode == 0)
-		    f = fopen(fptName, "a");
-        else
-            f = fopen(fpmName, "a");
-		for (int i = 0; i < size; i++){
-            if (k==0)
-		        fprintf(f, "%i\n", wcrth[i]);
-            else
-                fprintf(f, "%i\n", wcrtl[i]);
-        }
-		fclose(f);   
-    }
-}*/
-
-
-int compare(const void* a, const void* b){
-    return ( *(int*)a - *(int*)b );
-}
-
-void printArr(int* arr, int length){
-    for (int i = 0; i < length; i++){
-    	printf("%i ", arr[i]);
-    }
-    printf("\n");
 }
 
 struct timespec intNsToTime(int time){
@@ -210,61 +134,6 @@ int timeToIntNs(struct timespec time){
     int ns = time.tv_sec * 1000000000;
     ns += time.tv_nsec;
     return ns;
-}
-
-int sameMode(struct task_struct* tstruct1, int mode1, struct task_struct* tstruct2, int mode2){ //execTime!?
-    if(tstruct1->function[mode1] != tstruct2->function[mode2])
-    	return 0;
-
-    if(timeToIntNs(tstruct1->period[mode1]) != timeToIntNs(tstruct2->period[mode2]))
-    	return 0;
-
-    if (tstruct1->priority[mode1] != tstruct2->priority[mode2])
-    	return 0;
-
-
-    return 1;
-}
-
-int removeDuplicates(int* arr, int length){
-    int n = length;
-    int i = 0;
-
-    while(i < n-1){
-        if (arr[i] == arr[i+1]){
-            for (int k = i; k < n-1; k++){
-            	arr[k] = arr[k+1];
-            }
-            arr[n-1] = -1;
-            n--;
-        }
-        else{
-            i++;
-        }
-    }
-    return n;
-}
-
-void removeDuplicatesTask(struct task_struct* tstruct){
-	int i = 0;
-
-	while(i < tstruct->modeCount-1){
-		if (sameMode(tstruct, i, tstruct, i+1)){
-			 for (int k = i; k < tstruct->modeCount-1; k++){
-				 tstruct->priority[k] = tstruct->priority[k+1];
-				 tstruct->function[k] = tstruct->function[k+1];
-				 tstruct->limit[k] = tstruct->limit[k+1];
-				 tstruct->execTime[k] = tstruct->execTime[k+1];
-				 tstruct->period[k] = tstruct->period[k+1];
-				 tstruct->priority[k] = tstruct->priority[k+1];
-			 }
-			 tstruct->modeCount--;
-		}
-		else{
-			i++;
-		}
-
-	}
 }
 
 void printTimespec(const char* str, struct timespec t){
@@ -315,7 +184,7 @@ void printTasks(struct task_struct* t, int taskCount){
 }
 
 void tasksToFile(struct task_struct* t, int taskCount, char* fname){
-    FILE *f = fopen(fname, "w");
+    FILE *f = fopen(fname, "w+");
 
     for (int i = 0; i < taskCount; i++){
         fprintf(f, "ModeCount: %i\n", t[i].modeCount);
@@ -334,7 +203,7 @@ void tasksToFile(struct task_struct* t, int taskCount, char* fname){
 }
 
 void wcrtToFile(int wcrt, char* fname){
-    FILE *f = fopen(fname, "a");
+    FILE *f = fopen(fname, "a+");
     fprintf(f, "%i\n", wcrt);
     fclose(f);
 }
