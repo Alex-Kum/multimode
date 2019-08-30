@@ -5,8 +5,8 @@
 int main(int argc, char* argv[])
 {
     int numberOfRuns = 100;
-    int utilStepCount = 1;
-    float startUtil = 0.7;
+    int utilStepCount = 9;
+    float startUtil = 0.3;
     float utilStep = 0.05;
 
     int taskCount = getTaskCount();
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
             exit(-2);
         }
 
-        ret = pthread_attr_setschedpolicy(&attr[i], SCHED_RR);
+        ret = pthread_attr_setschedpolicy(&attr[i], SCHED_FIFO);
         if (ret) {
             printf("pthread setschedpolicy failed\n");
             exit(-2);
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
             exit(-2);
         }
     }
-
+    pthread_setschedprio(pthread_self(), 98);
     for (int k = 0; k < utilStepCount; k++){
         struct task_struct cTasks[taskCount];  
         struct task_struct cTasks2[taskCount];
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
             struct task_struct* tasks;
             //char* fileName = 0;
             char* wcrtFile = 0;
-            for (int j = 0; j < 2; j++){
+            for (int j = 1; j < 2; j++){
                 if (j == 0){
                     tasks = cTasks;
                     //fileName = "fileFPT.txt";
@@ -117,13 +117,25 @@ int main(int argc, char* argv[])
                     freeTaskStruct(tasks, taskCount);
                     exit(-2);
                 }
+                externalInput = 0;
+                int dir = 0;
                 for (int m = 0; m < 2; m++){
                     clock_gettime(CLOCK_MONOTONIC, &begin);
                     do{
-                        externalInput = getRand(0,9000);
-                        mySleep(200000);
+                        //externalInput = getRand(0,9000);
+                        if (dir == 0){
+                            externalInput += 100;
+                            if (externalInput == 9000)
+                                dir = 1;
+                        }
+                        else{
+                            externalInput -= 100;
+                            if (externalInput == 0)
+                                dir = 0;
+                        }
+                        mySleep(50000000);
                         clock_gettime(CLOCK_MONOTONIC, &now);                        
-                    } while (diff(begin, now).tv_sec < 20);
+                    } while (diff(begin, now).tv_sec < 60);
                 }
                 run = 0;
                 joinThreads(thread, taskCount);

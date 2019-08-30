@@ -1,7 +1,7 @@
 #include "helper.h"
 
 int getTaskCount(){
-    return 40;
+    return 2;
 }
 
 int getRandExecTime(int wcet){
@@ -14,10 +14,10 @@ int getRandExecTime(int wcet){
     return wcet * factor;
 }
 
-void functionWithExecTime(void* execTimeNs){
+void functionWithExecTime(void* wcet){
     struct timespec beginExec, now;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &beginExec);
-    int time = getRandExecTime(*(int*)execTimeNs);
+    int time = getRandExecTime(*(int*)wcet);
     do{
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
     } while (timeToIntNs(diff(beginExec, now)) < time);
@@ -40,7 +40,7 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     }
 }
 
-int getLimitCount(struct task_struct* tstruct){
+int getModeCount(struct task_struct* tstruct){
     int sum = 0;
     int taskCount = getTaskCount();
 
@@ -76,13 +76,11 @@ int getRandPeriod(){
     return 10000*fac;
 }
 
-void CSetGenerate(struct task_struct* tstruct, double* USet, int PMin, int numLog){
+void CSetGenerate(struct task_struct* tstruct, double* USet){
     int taskCount = getTaskCount();
     int j = 0;
 
     for (int i = 0; i < taskCount; i++){
-        int thN = j%numLog;
-        //tstruct[i].period[0] = intNsToTime(getRand(PMin * pow(10, thN), PMin * pow(10, thN+1)));
         tstruct[i].period[0] = intNsToTime(getRandPeriod());
         int execT =(int)(USet[i] * timeToIntNs(tstruct[i].period[0]));
         tstruct[i].execTime[0] = execT;
@@ -95,7 +93,7 @@ void makeMultiMode(struct task_struct* tstruct){
     int taskCount = getTaskCount();    
 
     for (int i = 0; i < taskCount; i++){
-        int rand = getRand(5,9);
+        int rand = getRand(7,9);
     	float factor = rand/10.0;
         for (int j = 1; j < tstruct[i].modeCount; j++){
             int p = timeToIntNs(tstruct[i].period[j-1]) * factor;
@@ -130,14 +128,14 @@ int smallestPeriodFPT(struct task_struct* tstruct, int min){
     return smallest;
 }
 
-int smallestPeriodFPM(struct task_struct* tstruct, int min, int smallestI, int biggestI){
+int smallestPeriodFPM(struct task_struct* tstruct, int min){
     int smallest = INT_MAX;
     int taskCount = getTaskCount();
 
     for (int i = 0; i < taskCount; i++){
         for (int k = 0; k < tstruct[i].modeCount; k++){
             int period = timeToIntNs(tstruct[i].period[k]);
-            if (period < smallest && period > min && period >= smallestI && period >= biggestI){
+            if (period < smallest && period > min){
                 smallest = period;
             }
         }
@@ -151,7 +149,7 @@ void rmAssignFPT(struct task_struct* tstruct){
     int changed = 0;
 
     assignedPriorities = 0;
-    curPrio = 98;
+    curPrio = 97;
     highestPrio = curPrio;
     min = 0;
     while(assignedPriorities < taskCount){
@@ -183,31 +181,26 @@ void rmAssignFPT(struct task_struct* tstruct){
 
 void rmAssignFPM(struct task_struct* tstruct){
     int taskCount = getTaskCount();
-    int modes = getLimitCount(tstruct);
+    int modes = getModeCount(tstruct);
     int min, assignedPriorities, curPrio, smallest;
     int changed = 0;
 
     assignedPriorities = 0;
-    curPrio = 98;
-    highestPrio = curPrio;
+    curPrio = 97;
     min = 0;
     while(assignedPriorities < modes){
-        smallest = smallestPeriodFPM(tstruct, min, 0, 9000);
-        min = smallest;
+        smallest = smallestPeriodFPM(tstruct, min);
 
         for (int j = 0; j < taskCount; j++){
             for (int k = 0; k < tstruct[j].modeCount; k++){
                 if (timeToIntNs(tstruct[j].period[k]) == smallest){
                     tstruct[j].priority[k] = curPrio;
                     assignedPriorities++;
-                    changed = 1;
                 }
             }
         }
-        if (changed){
-            changed = 0;
-            curPrio--;
-        }
+        min = smallest;
+        curPrio--;
     }
     lowestPrio = curPrio+1;
     #ifdef print
@@ -225,13 +218,13 @@ void generateTasks(struct task_struct* tstruct, double u){
     	if (i < taskCount/2)
             modes[i] = 1;
     	else{
-            modes[i] = 4;
+            modes[i] = 7;
     	}
     }
 
     initTaskStruct(tstruct, taskCount, modes);
     UUniFast(USet, u);
-    CSetGenerate(tstruct, USet, 100000, 3);
+    CSetGenerate(tstruct, USet);
     makeMultiMode(tstruct);
 }
 
