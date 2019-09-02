@@ -14,10 +14,10 @@ int getRandExecTime(int wcet){
     return wcet * factor;
 }
 
-void functionWithExecTime(void* execTimeNs){
+void functionWithExecTime(void* wcet){
     struct timespec beginExec, now;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &beginExec);
-    int time = getRandExecTime(*(int*)execTimeNs);
+    int time = getRandExecTime(*(int*)wcet);
     do{
         clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
     } while (timeToIntNs(diff(beginExec, now)) < time);
@@ -40,7 +40,7 @@ void setTaskBegin(struct task_struct* tstruct, int taskCount, int amountTime){
     }
 }
 
-int getLimitCount(struct task_struct* tstruct){
+int getModeCount(struct task_struct* tstruct){
     int sum = 0;
     int taskCount = getTaskCount();
 
@@ -128,14 +128,14 @@ int smallestPeriodFPT(struct task_struct* tstruct, int min){
     return smallest;
 }
 
-int smallestPeriodFPM(struct task_struct* tstruct, int min, int smallestI, int biggestI){
+int smallestPeriodFPM(struct task_struct* tstruct, int min){
     int smallest = INT_MAX;
     int taskCount = getTaskCount();
 
     for (int i = 0; i < taskCount; i++){
         for (int k = 0; k < tstruct[i].modeCount; k++){
             int period = timeToIntNs(tstruct[i].period[k]);
-            if (period < smallest && period > min && period >= smallestI && period >= biggestI){
+            if (period < smallest && period > min){
                 smallest = period;
             }
         }
@@ -181,31 +181,26 @@ void rmAssignFPT(struct task_struct* tstruct){
 
 void rmAssignFPM(struct task_struct* tstruct){
     int taskCount = getTaskCount();
-    int modes = getLimitCount(tstruct);
+    int modes = getModeCount(tstruct);
     int min, assignedPriorities, curPrio, smallest;
     int changed = 0;
 
     assignedPriorities = 0;
     curPrio = 97;
-    highestPrio = curPrio;
     min = 0;
     while(assignedPriorities < modes){
-        smallest = smallestPeriodFPM(tstruct, min, 0, 9000);
-        min = smallest;
+        smallest = smallestPeriodFPM(tstruct, min);
 
         for (int j = 0; j < taskCount; j++){
             for (int k = 0; k < tstruct[j].modeCount; k++){
                 if (timeToIntNs(tstruct[j].period[k]) == smallest){
                     tstruct[j].priority[k] = curPrio;
                     assignedPriorities++;
-                    changed = 1;
                 }
             }
         }
-        if (changed){
-            changed = 0;
-            curPrio--;
-        }
+        min = smallest;
+        curPrio--;
     }
     lowestPrio = curPrio+1;
     #ifdef print

@@ -263,6 +263,10 @@ struct timespec add(struct timespec t1, struct timespec t2){
 struct timespec mySleep(int nanosec){
     struct timespec t = intNsToTime(nanosec);
     nanosleep(&t, &t);
+    /*struct timespec begin, end;
+    clock_gettime(CLOCK_MONOTONIC, &begin);
+    end = add(begin, t);
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &end, NULL);*/
 }
 
 void fillThreadInfos(struct thread_info* tinfo, struct task_struct* tstruct, int taskCount, int* run, int* externalInput){   

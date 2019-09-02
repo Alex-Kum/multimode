@@ -5,8 +5,8 @@
 int main(int argc, char* argv[])
 {
     int numberOfRuns = 100;
-    int utilStepCount = 7;
-    float startUtil = 0.4;
+    int utilStepCount = 9;
+    float startUtil = 0.3;
     float utilStep = 0.05;
 
     int taskCount = getTaskCount();
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
             exit(-2);
         }
     }
-
+    pthread_setschedprio(pthread_self(), 98);
     for (int k = 0; k < utilStepCount; k++){
         struct task_struct cTasks[taskCount];  
         struct task_struct cTasks2[taskCount];
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
                             if (externalInput == 0)
                                 dir = 0;
                         }
-                        mySleep(200000);
+                        mySleep(50000000);
                         clock_gettime(CLOCK_MONOTONIC, &now);                        
                     } while (diff(begin, now).tv_sec < 60);
                 }
